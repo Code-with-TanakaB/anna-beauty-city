@@ -1,0 +1,116 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  SHIPPED
+  COMPLETED
+  REJECTED
+  CANCELLED
+}
+enum PaymentStatus {
+  UNPAID
+  AWAITING_APPROVAL
+  APPROVED
+  REJECTED
+}
+model Product {
+  id         String      @id @default(cuid())
+  slug       String      @unique
+  name       String
+  category   String
+  priceCents Int
+  costCents  Int         @default(0)
+  stock      Int         @default(0)
+  isService  Boolean     @default(false)
+  isSample   Boolean     @default(true)
+  items      OrderItem[]
+}
+model Order {
+  id            String      @id @default(cuid())
+  number        Int         @unique @default(autoincrement())
+  status        OrderStatus @default(PENDING)
+  name          String
+  email         String
+  phone         String
+  address       String
+  province      String
+  subtotalCents Int
+  deliveryCents Int
+  totalCents    Int
+  accessToken   String      @unique @default(cuid())
+  createdAt     DateTime    @default(now())
+  items         OrderItem[]
+  payment       Payment?
+  logs          StatusLog[]
+  @@index([status, createdAt])
+}
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  name      String
+  unitCents Int
+  qty       Int
+  options   String?
+}
+model Payment {
+  id          String        @id @default(cuid())
+  orderId     String        @unique
+  order       Order         @relation(fields: [orderId], references: [id])
+  provider    String
+  status      PaymentStatus @default(UNPAID)
+  amountCents Int
+  providerRef String?       @unique
+  proofKey    String?
+  approvedBy  String?
+  approvedAt  DateTime?
+}
+model StatusLog {
+  id      String   @id @default(cuid())
+  orderId String
+  order   Order    @relation(fields: [orderId], references: [id])
+  from    String
+  to      String
+  by      String?
+  note    String?
+  at      DateTime @default(now())
+}
+model Lead {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  phone     String
+  consentAt DateTime
+  source    String
+  createdAt DateTime @default(now())
+}
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  subject   String
+  message   String
+  createdAt DateTime @default(now())
+}
+model Expense {
+  id          String   @id @default(cuid())
+  category    String
+  amountCents Int
+  date        DateTime
+  note        String?
+}
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+}
